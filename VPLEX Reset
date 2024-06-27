@@ -1,8 +1,0 @@
-# Dell PST CSI Installation
-### 1.安裝所需Tool
-```
-apt-get update
-apt-get install sshpass
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-apt install nfs-common -y
-```
