@@ -1,6 +1,4 @@
-# VPLEX Reset
-```
-VPlexcli:/> ls -la /clusters/cluster-1/system-volumes
+# VPlexcli:/> ls -la /clusters/cluster-1/system-volumes
 
 /clusters/cluster-1/system-volumes:
 Name                                 Volume Type  Operational  Health  Active  Ready  Geometry  Component  Block     Block  Capacity  Slots
@@ -52,9 +50,7 @@ Started.
 
 ...
 Meta-volume is cleaned up successfully
-```
 
-```
 VPlexcli:/> configuration system-reset
 Info: Able to contact director-1-1-A at 128.221.252.35.
 Info: Able to contact director-1-1-B at 128.221.252.36.
