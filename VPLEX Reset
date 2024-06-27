@@ -1,58 +1,8 @@
+# Dell PST CSI Installation
+### 1.安裝所需Tool
 ```
-VPlexcli:/> disconnect -n director-1-1-A
-VPlexcli:/> disconnect -n director-1-1-B
-VPlexcli:/> ls -la /clusters/cluster-2/system-volumes
-VPlexcli:/> ls -la /clusters/cluster-1/system-volumes
-```
-```
-/clusters/cluster-1/system-volumes:
-Name                                 Volume Type  Operational  Health  Active  Ready  Geometry  Component  Block     Block  Capacity  Slots
------------------------------------  -----------  Status       State   ------  -----  --------  Count      Count     Size   --------  -----
------------------------------------  -----------  -----------  ------  ------  -----  --------  ---------  --------  -----  --------  -----
-meta-volume                          meta-volume  ok           ok      true    true   raid-1    2          20446976  4K     78G       64000
-meta-volume_backup_2024Jun11_064729  meta-volume  ok           ok      false   true   raid-1    1          20971264  4K     80G       64000
-meta-volume_backup_2024Jun11_064850  meta-volume  ok           ok      false   true   raid-1    1          20971264  4K     80G       64000
-
-VPlexcli:/> meta-volume destroy --meta-volume meta-volume_backup_2024Jun11_064729
-
-Meta-volume 'meta-volume_backup_2024Jun11_064729' will be destroyed. Do you wish to continue?  (Yes/No) yes
-
-VPlexcli:/> meta-volume destroy --meta-volume meta-volume_backup_2024Jun11_064850
-
-Meta-volume 'meta-volume_backup_2024Jun11_064850' will be destroyed. Do you wish to continue?  (Yes/No) yes
-
-VPlexcli:/> script -i VPlexadmin
-
-VPlexcli:/> configuration meta-volume-cleanup
-Cleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recoCleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recoCleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recovery from destroying meta-volumes. For safety, this command will not clean up meta-volume backups or non-active meta-volumes. If you are using this command as a step prior to a configuration system-reset, all non-active meta-volumes and meta-volume backups should be first destroyed using the meta-volume destroy command.you sure you want to continue and delete the active meta-volume on this cluster? (Y/N): 
- Are you sure you want to continue and delete the active meta-volume on this cluster? (Y/N): Y
-
-To show that you understand the risks involved and still desire to remove the active meta-volume enter REMOVE (case sensitive):REMOVE
-Info: Able to contact director-1-1-A at 128.221.252.35.
-Info: Able to contact director-1-1-B at 128.221.252.36.
-Disconnected from remote systems director-1-1-A, director-1-1-B.
-Connected to Plex firmware director-1-1-A.
-
-Connected to Plex firmware director-1-1-B.
-
-Cleanup of Meta-volume started...
-
-Verifying that all the pre-conditions for cleaning up meta-volume are satisfied...
-
-Verification of the pre-conditions for the run complete.
-
-This may take a few moments...
-
-For /engines/engine-1-1/directors/director-1-1-B:
-Status    Description
---------  -----------
-Started.
-
-For /engines/engine-1-1/directors/director-1-1-A:
-Status    Description
---------  -----------
-Started.
-
-...
-Meta-volume is cleaned up successfully
+apt-get update
+apt-get install sshpass
+curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+apt install nfs-common -y
 ```
