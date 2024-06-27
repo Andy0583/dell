@@ -1,105 +1,151 @@
-# Dell PST CSI Installation
-### 1.安裝所需Tool
+# VPLEX Reset
 ```
-apt-get update
-apt-get install sshpass
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
-apt install nfs-common -y
+VPlexcli:/> ls -la /clusters/cluster-1/system-volumes
+
+/clusters/cluster-1/system-volumes:
+Name                                 Volume Type  Operational  Health  Active  Ready  Geometry  Component  Block     Block  Capacity  Slots
+-----------------------------------  -----------  Status       State   ------  -----  --------  Count      Count     Size   --------  -----
+-----------------------------------  -----------  -----------  ------  ------  -----  --------  ---------  --------  -----  --------  -----
+meta-volume                          meta-volume  ok           ok      true    true   raid-1    2          20446976  4K     78G       64000
+meta-volume_backup_2024Jun11_064729  meta-volume  ok           ok      false   true   raid-1    1          20971264  4K     80G       64000
+meta-volume_backup_2024Jun11_064850  meta-volume  ok           ok      false   true   raid-1    1          20971264  4K     80G       64000
+
+VPlexcli:/> meta-volume destroy --meta-volume meta-volume_backup_2024Jun11_064729
+
+Meta-volume 'meta-volume_backup_2024Jun11_064729' will be destroyed. Do you wish to continue?  (Yes/No) yes
+
+VPlexcli:/> meta-volume destroy --meta-volume meta-volume_backup_2024Jun11_064850
+
+Meta-volume 'meta-volume_backup_2024Jun11_064850' will be destroyed. Do you wish to continue?  (Yes/No) yes
+
+VPlexcli:/> script -i VPlexadmin
+
+VPlexcli:/> configuration meta-volume-cleanup
+Cleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recoCleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recoCleaning up the active meta-volume on a system is extremely disruptive and will result in the loss of all configuration data. There is no turning back or recovery from destroying meta-volumes. For safety, this command will not clean up meta-volume backups or non-active meta-volumes. If you are using this command as a step prior to a configuration system-reset, all non-active meta-volumes and meta-volume backups should be first destroyed using the meta-volume destroy command.you sure you want to continue and delete the active meta-volume on this cluster? (Y/N): 
+ Are you sure you want to continue and delete the active meta-volume on this cluster? (Y/N): Y
+
+To show that you understand the risks involved and still desire to remove the active meta-volume enter REMOVE (case sensitive):REMOVE
+Info: Able to contact director-1-1-A at 128.221.252.35.
+Info: Able to contact director-1-1-B at 128.221.252.36.
+Disconnected from remote systems director-1-1-A, director-1-1-B.
+Connected to Plex firmware director-1-1-A.
+
+Connected to Plex firmware director-1-1-B.
+
+Cleanup of Meta-volume started...
+
+Verifying that all the pre-conditions for cleaning up meta-volume are satisfied...
+
+Verification of the pre-conditions for the run complete.
+
+This may take a few moments...
+
+For /engines/engine-1-1/directors/director-1-1-B:
+Status    Description
+--------  -----------
+Started.
+
+For /engines/engine-1-1/directors/director-1-1-A:
+Status    Description
+--------  -----------
+Started.
+
+...
+Meta-volume is cleaned up successfully
 ```
 
+```
+VPlexcli:/> configuration system-reset
+Info: Able to contact director-1-1-A at 128.221.252.35.
+Info: Able to contact director-1-1-B at 128.221.252.36.
+The system reset is a VERY disruptive command.  It will reset ALL of the configuration changes made to the system and reboot all system components.  Do not run this command unless you are certain that it is required to return your system to a pre-configuration state.
+ Do you want to continue? (Y/N): Y
 
-### 2.下載PowerStore CSI及CSI Snapshot
-```
-git clone https://github.com/dell/csi-powerstore.git
-git clone https://github.com/kubernetes-csi/external-snapshotter/
-```
+To show that you understand the risks involved and still desire a system reset please enter RESET (case sensitive):RESET
+Info: Able to contact director-1-1-A at 128.221.252.35.
+Info: Able to contact director-1-1-B at 128.221.252.36.
+Disconnected from remote systems director-1-1-A, director-1-1-B.
+Connected to Plex firmware director-1-1-A.
 
+Connected to Plex firmware director-1-1-B.
 
-### 3.安裝snapshotter
-```
-cd ~/external-snapshotter
-kubectl kustomize client/config/crd | kubectl create -f -
-kubectl -n kube-system kustomize deploy/kubernetes/snapshot-controller | kubectl create -f -
-```
+Resetting all the tasks....
+Resetting the VPN Configuration....complete
 
+Cleaning up all the certificate files...
 
-### 4.安裝CSI
-```
-kubectl create namespace ps     # ps為Name Space，依據需求自定義
-cd ~/csi-powerstore/dell-csi-helm-installer/
-git clone https://github.com/dell/helm-charts.git
-openssl s_client -showcerts -connect 172.22.33.20:443 </dev/null 2>/dev/null | openssl x509 -outform PEM > ca_cert_0.pem     # 為PST IP，依據需求修改
-kubectl create secret generic powerstore-certs-0 -n ps --from-file=cert-0=ca_cert_0.pem
-```
+Reset of CertificateCreationTask is complete...
 
+Removing the KeyStore file...
 
-### 5.建立secret.yaml
-```
-vi secret.yaml
-```
-```
-arrays:
-  - endpoint: "https://172.22.33.20/api/rest"   # PST IP
-    globalID: "PS556db8bad5cd"      # PST  Global ID
-    username: "admin"       # PST 帳號
-    password: "XXXXXXXXXXXXXX"      # PST 密碼
-    nasName: "andy-nas"     # NAS Server Name
-    skipCertificateValidation: true 
-    isDefault: true
-    blockProtocol: “None”
-```
+Removing ROOT certificate from JavaKeyStore...
 
-```
-kubectl create secret generic powerstore-config -n ps --from-file=config=secret.yaml     # ps為Name Space，依據需求自定義
-```
+Reset of JKSSetup task is complete...
 
+Setting the TLA back to empty...
 
-### 6.下載values.yaml
-```
-wget -O values.yaml https://github.com/dell/helm-charts/raw/csi-powerstore-2.10.0/charts/csi-powerstore/values.yaml
-```
+Reset of EMAadaptorConfigTask is complete...
 
-* 若NFS不同網段，於values.yaml修改
-```
-vi values.yaml
-```
->```
-> externalAccess: "192.168.131.0/24"
->```
+Cleaning up CallHomeAutomationTask...
 
+Clearing all callhome records...
 
-### 8.安裝CSI
+Restarting the call home services...
 
-* 所有密碼都略過，直到出現下列訊息後按"y"
- * Press 'y' to continue or any other key to exit:
-```
-./csi-install.sh --namespace ps --values ./values.yaml     # ps為Name Space，依據需求自定義
-```
+Disabling callhome...
 
+Resetting SYR schedule...
 
-### 9.檢查安裝是否正確完成
-```
-Press 'y' to continue or any other key to exit: y
-|
-|- Installing Driver                                                Success
-  |
-  |--> Waiting for Deployment powerstore-controller to be ready     Success
-  |
-  |--> Waiting for DaemonSet powerstore-node to be ready            Success
-------------------------------------------------------
-> Operation complete
-------------------------------------------------------
-```
+Reset of CallHomeAutomationTask is complete...
 
+Cleaning up SNMPConfigureAutomationTask...
 
-### 10.驗證
-* 驗證Pod數量及是否皆於"Running"狀態
-* READY 6/6：代表該Pod內有6個Container，6個皆於可用狀態。
-```
-root@k8s1:~/csi-powerstore/dell-csi-helm-installer# kubectl get pod -n ps
-NAME                                     READY   STATUS    RESTARTS        AGE
-powerstore-controller-54cd5fccc4-2zm94   6/6     Running   1 (3m51s ago)   4m50s
-powerstore-controller-54cd5fccc4-bx9hd   6/6     Running   1 (3m48s ago)   4m50s
-powerstore-node-52wv4                    2/2     Running   0               4m50s
-powerstore-node-5mk6v                    2/2     Running   0               4m50s
+Disabling SNMP Agent...
+
+Reset of SNMPConfigureAutomationTask is complete...
+
+Removed the scheduled backup job
+Resetting basicSetupTask...
+
+Cleaning up all the configuration files...
+
+Clearing the connections file...
+
+connections file cleared successfully...
+
+Removing the persistentstore.xml file...
+
+Removed the persistenstore.xml file successfully...
+
+Removing the ESRS configuration ini file...
+
+Removed the ESRS configuration ini file successfully...
+
+Removing the VPlexconfig.xml file ...
+
+Removed the VPlexconfig.xml file successfully...
+
+Clearing the contents of ipsec.conf file...
+
+ipsec.conf file cleared successfully...
+
+Clearing the contents of ipsec.secrets file...
+
+ipsec.secrets file cleared successfully...
+
+Reset of the basicSetupTask is complete...
+
+Disconnected from remote systems director-1-1-A, director-1-1-B.
+Connected to Plex firmware director-1-1-A.
+
+Connected to Plex firmware director-1-1-B.
+
+Disconnected from remote systems director-1-1-A, director-1-1-B.
+Wiping out persistent data from directors and rebooting them now.
+ This may take some time...
+Removing Login Banner configuration from management-server...
+Nothing to do: No installed 'VPLEX' license found.
+The system will now reboot.  Please wait at least 15 minutes before attempting to reconfigure the system for the directors to become ready after the reset.
+
+Network error: Software caused connection abort
 ```
